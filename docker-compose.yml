@@ -1,0 +1,101 @@
+version: "3"
+
+volumes:
+  hddacme:
+  hddcanon:
+  hddletsencrypt:
+  hddrestui:
+
+networks:
+  default:
+
+services:
+  # certbot in docker is managed by the system's crontab, use these parameters
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - hddletsencrypt:/etc/letsencrypt
+      - hddacme:/tmp/certbotacme
+      - ./certbot/cli.ini:/etc/letsencrypt/cli.ini
+      - ./certbot/first-run.sh:/first-run.sh
+      - ./certbot/make-certs.sh:/make-certs.sh
+    environment:
+      - EMAIL=datachile@datawheel.us
+
+  restui:
+    build: https://github.com/Datawheel/mondrian-rest-ui.git#master
+    volumes:
+      - hddrestui:/app/src/build
+    environment:
+      - REACT_APP_API_URL=https://chilecube.datawheel.us
+    command: yarn run build
+
+  db:
+    image: "postgres:latest"
+    volumes:
+      - ./db/postgresql.conf:/etc/postgresql.conf
+      - ./db/init.d:/docker-entrypoint-initdb.d
+      - /datastore/postgres:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    restart: always
+    command: postgres -c config_file=/etc/postgresql.conf
+
+  mondrian:
+    build: https://github.com/datachile/datachile-mondrian.git#master
+    depends_on:
+      - db
+    volumes:
+      - ./mondrian/config.yaml:/mondrian-rest/config.yaml:ro
+      - ./mondrian/schema.xml:/mondrian-rest/schema.xml:ro
+    environment:
+      - MONDRIAN_REST_CONF=/mondrian-rest/config.yaml
+    # networks:
+    #   default:
+    #     # the alias must be the same as the url.origin for the mondrian server
+    #     aliases:
+    #       - chilecube.datawheel.us
+    expose:
+      - "9292"
+    restart: always
+    # logging:
+    #   driver: gcplogs
+
+  canon:
+    build: https://github.com/datachile/datachile.git#deploy-prod
+    depends_on:
+      - mondrian
+    volumes:
+      - hddcanon:/datachile/static
+    environment:
+      - NODE_ENV=production
+      - APP_HOME=/datachile
+      - ROOT=/datachile
+      - CANON_CONST_API=https://chilecube.datawheel.us
+      # - CANON_GOOGLE_ANALYTICS=UA-109603240-1
+      - CANON_LANGUAGE_DEFAULT=es
+      - CANON_LANGUAGES=es,en
+      - CANON_PORT=4444
+    expose:
+      - "4444"
+    restart: always
+
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - canon
+      - mondrian
+      - restui
+    volumes:
+      - hddacme:/tmp/certbotacme
+      - hddcanon:/app/canon-static:ro
+      - hddletsencrypt:/etc/letsencrypt
+      - hddrestui:/app/restui
+      - ./nginx/hosts:/etc/nginx/conf.d
+      - ./nginx/snippets:/etc/nginx/snippets
+      - ./cache/canon:/ncache/canon
+      - ./cache/mondrian:/ncache/mondrian
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always

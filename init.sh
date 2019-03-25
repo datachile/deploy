@@ -1,17 +1,37 @@
 # ==============================================================================
-# Initialize database
+# MAKE PERMANENT STORAGE FOLDERS
+sudo mkdir /datastore
+sudo mkdir /datastore/dumps
+sudo mkdir /datastore/postgres
+sudo mkdir /datastore/cache-mondrian
+sudo mkdir /datastore/cache-canon
+
+# ==============================================================================
+# INITIALIZE DATABASE
 # This will run the scripts inside db/init.d/ and restore the data and user.
 docker-compose run --rm db
 
 # ==============================================================================
-# Create fake certs
-# The nginx server won't run without these files,
-# so we have to make a few in the meantime.
+# CREATE FAKE CERTIFICATES
+# The nginx server won't run without the certificates, so we have to make a few
+# in the meantime. Input the root domain only.
 docker-compose run --rm --entrypoint sh \
-    certbot /make-certs.sh datachile.io es.datachile.io en.datachile.io static.datachile.io chilecube.datawheel.us
+    certbot /fake-certs.sh prod.datachile.io
 
 # ==============================================================================
+# CREATE CONTAINERS
+# Let's make the containers this time.
 docker-compose up -d
 
+# ==============================================================================
+# GENERATE THE ACTUAL CERTIFICATES
+# Time to run certbot.
+# Input all the domains that will be handled; the first one must be 
+# the root domain.
 docker-compose run --rm --entrypoint sh \
-    certbot /first-run.sh datachile.io es.datachile.io en.datachile.io static.datachile.io chilecube.datawheel.us
+    certbot /real-certs.sh prod.datachile.io \
+        www.prod.datachile.io \
+        es.prod.datachile.io \
+        en.prod.datachile.io \
+        chilecube.prod.datachile.io \
+        static.prod.datachile.io

@@ -10,15 +10,14 @@ networks:
   default:
 
 services:
-  # certbot in docker is managed by the system's crontab, use these parameters
   certbot:
     image: certbot/certbot:latest
     volumes:
       - hddletsencrypt:/etc/letsencrypt
-      - hddacme:/tmp/certbotacme
+      - hddacme:/tmp/certbot-acme
       - ./certbot/cli.ini:/etc/letsencrypt/cli.ini
-      - ./certbot/first-run.sh:/first-run.sh
-      - ./certbot/make-certs.sh:/make-certs.sh
+      - ./certbot/fake-certs.sh:/fake-certs.sh
+      - ./certbot/real-certs.sh:/real-certs.sh
     environment:
       - EMAIL=datachile@datawheel.us
 
@@ -27,7 +26,7 @@ services:
     volumes:
       - hddrestui:/app/src/build
     environment:
-      - REACT_APP_API_URL=https://chilecube.datawheel.us
+      - REACT_APP_API_URL=https://chilecube.prod.datachile.io
     command: yarn run build
 
   db:
@@ -36,9 +35,11 @@ services:
       - ./db/postgresql.conf:/etc/postgresql.conf
       - ./db/init.d:/docker-entrypoint-initdb.d
       - /datastore/postgres:/var/lib/postgresql/data
-    expose:
-      - "5432"
-    restart: always
+    environment:
+      - POSTGRES_PASSWORD="please set a password"
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
     command: postgres -c config_file=/etc/postgresql.conf
 
   mondrian:
@@ -50,19 +51,12 @@ services:
       - ./mondrian/schema.xml:/mondrian-rest/schema.xml:ro
     environment:
       - MONDRIAN_REST_CONF=/mondrian-rest/config.yaml
-    # networks:
-    #   default:
-    #     # the alias must be the same as the url.origin for the mondrian server
-    #     aliases:
-    #       - chilecube.datawheel.us
     expose:
       - "9292"
-    restart: always
-    # logging:
-    #   driver: gcplogs
+    restart: unless-stopped
 
   canon:
-    build: https://github.com/datachile/datachile.git#deploy-prod
+    build: https://github.com/datachile/datachile.git#staging
     depends_on:
       - mondrian
     volumes:
@@ -71,14 +65,17 @@ services:
       - NODE_ENV=production
       - APP_HOME=/datachile
       - ROOT=/datachile
-      - CANON_CONST_API=https://chilecube.datawheel.us
-      # - CANON_GOOGLE_ANALYTICS=UA-109603240-1
+      - CANON_API=https://chilecube.prod.datachile.io
+      - CANON_CONST_API=https://chilecube.prod.datachile.io
+      - CANON_GOOGLE_ANALYTICS=UA-109603240-1
       - CANON_LANGUAGE_DEFAULT=es
       - CANON_LANGUAGES=es,en
+      - CANON_LOGICLAYER_CUBE=http://mondrian:9292/
+      - CANON_LOGICLAYER_LOGGING=true
       - CANON_PORT=4444
     expose:
       - "4444"
-    restart: always
+    restart: unless-stopped
 
   nginx:
     image: nginx:latest
@@ -87,15 +84,18 @@ services:
       - mondrian
       - restui
     volumes:
-      - hddacme:/tmp/certbotacme
+      - hddacme:/tmp/certbot-acme
       - hddcanon:/app/canon-static:ro
       - hddletsencrypt:/etc/letsencrypt
       - hddrestui:/app/restui
+      - /datastore/cache-canon:/ncache/canon
+      - /datastore/cache-mondrian:/ncache/mondrian
       - ./nginx/hosts:/etc/nginx/conf.d
       - ./nginx/snippets:/etc/nginx/snippets
-      - ./cache/canon:/ncache/canon
-      - ./cache/mondrian:/ncache/mondrian
+      - ./nginx/ssl:/etc/nginx/ssl
     ports:
       - "80:80"
       - "443:443"
-    restart: always
+    restart: unless-stopped
+    logging:
+      driver: gcplogs

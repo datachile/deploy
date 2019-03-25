@@ -1,8 +1,0 @@
-The 01-init.sh script was made to be used with a dump obtained with this command:
-
-```bash
-pg_dump [connection params] --create --clean --format=c --no-acl --no-owner --file=/full/path/datachile_dump.custom datachile
-```
-
-The `--file` parameter is the full path to where the data will be saved.
-The output file must be placed in this folder before running `docker-compose`.

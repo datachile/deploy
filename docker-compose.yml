@@ -35,6 +35,7 @@ services:
       - ./db/postgresql.conf:/etc/postgresql.conf
       - ./db/init.d:/docker-entrypoint-initdb.d
       - /datastore/postgres:/var/lib/postgresql/data
+      - /datastore/shared:/app/shared
     environment:
       - POSTGRES_PASSWORD="please set a password"
     ports:
@@ -49,6 +50,7 @@ services:
     volumes:
       - ./mondrian/config.yaml:/mondrian-rest/config.yaml:ro
       - ./mondrian/schema.xml:/mondrian-rest/schema.xml:ro
+      - /datastore/shared:/app/shared
     environment:
       - MONDRIAN_REST_CONF=/mondrian-rest/config.yaml
     expose:
@@ -61,6 +63,7 @@ services:
       - mondrian
     volumes:
       - hddcanon:/datachile/static
+      - /datastore/shared:/app/shared
     environment:
       - NODE_ENV=production
       - APP_HOME=/datachile
@@ -90,6 +93,8 @@ services:
       - hddrestui:/app/restui
       - /datastore/cache-canon:/ncache/canon
       - /datastore/cache-mondrian:/ncache/mondrian
+      - /datastore/public:/app/public
+      - /datastore/shared:/app/shared
       - ./nginx/hosts:/etc/nginx/conf.d
       - ./nginx/snippets:/etc/nginx/snippets
       - ./nginx/ssl:/etc/nginx/ssl

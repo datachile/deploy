@@ -16,7 +16,7 @@ docker-compose run --rm db
 # The nginx server won't run without the certificates, so we have to make a few
 # in the meantime. Input the root domain only.
 docker-compose run --rm --entrypoint sh \
-    certbot /fake-certs.sh prod.datachile.io
+    certbot /fake-certs.sh datachile.io
 
 # ==============================================================================
 # CREATE CONTAINERS
@@ -29,9 +29,9 @@ docker-compose up -d
 # Input all the domains that will be handled; the first one must be 
 # the root domain.
 docker-compose run --rm --entrypoint sh \
-    certbot /real-certs.sh prod.datachile.io \
-        www.prod.datachile.io \
-        es.prod.datachile.io \
-        en.prod.datachile.io \
-        chilecube.prod.datachile.io \
-        static.prod.datachile.io
+    certbot /real-certs.sh datachile.io \
+        www.datachile.io \
+        es.datachile.io \
+        en.datachile.io \
+        chilecube.datachile.io \
+        static.datachile.io

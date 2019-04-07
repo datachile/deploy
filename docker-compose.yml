@@ -35,6 +35,7 @@ services:
       - ./db/postgresql.conf:/etc/postgresql.conf
       - ./db/init.d:/docker-entrypoint-initdb.d
       - /datastore/postgres:/var/lib/postgresql/data
+      - /datastore/dumps:/app/dumps
       - /datastore/shared:/app/shared
     environment:
       - POSTGRES_PASSWORD="please set a password"

@@ -1,0 +1,7 @@
+:driver: postgresql
+:host: db
+:port: 5432
+:database: datachile
+:username: postgres
+:password: "please set a password"
+:catalog: /mondrian-rest/schema.xml

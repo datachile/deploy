@@ -1,6 +1,6 @@
 # datachile deployment procedure
 
-The datachile project has been configured to run on docker containers. Make sure both `docker` and `docker-compose` is installed and running in the machine you intend to setup datachile.
+The datachile project has been configured to run on docker containers. Make sure both `docker` and `docker-compose` is installed and running in the machine you intend to setup datachile. You also must previously prepared the DNS configuration for the domain this machine will be located. This is a required step, as the virtual hosts are configured to run for a domain.
 The deployment procedure can be divided in 2 steps: preparation, and setup, however, it's convenient you understand the internal structure in each container before you start the deployment.
 Each container runs a different part of the project, and has some common elements that connects them.
 
@@ -44,19 +44,23 @@ When the folder is prepared, create the `cache-canon`, `cache-mondrian`, `dumps`
 
 ### db
 To initialize the database you will need to ingest the data for mondrian.
-You can use the ETL procedure, but if there's another instance running in another server, you can dump that database and ingest it using the files included in this repository.
-The command to get the file from the postgres database in the other instance is:
+You can use the ETL procedure, but if there's another database instance running in another server, you can dump that database and ingest it in this machine using the files included in this repository.
+The command to export the database to a file from another postgres database is:
+
 ```bash
-pg_dump --no-acl --no-owner --file=/app/shared/dump.sql <dbname>
+pg_dump --no-acl --no-owner --file=/absolute/path/to/file.sql <dbname>
 ```
-Move the dumped file to `/datastore/dumps`, and it will be available internally on `/app/dumps`.
-The `01-init.sh` will create the database, the user, and will insert that file. You can change the connection data for that user here, but remember to also update it in the `./mondrian/config.yaml` file.
+
+This will generate a file.sql in the intended path. The filename doesn't matter, but it should have `.sql` extension. Move this file to `/datastore/dumps`, and the script will ingest it automatically. Inside the db container, the file will be available on `/app/dumps`. 
+The `01-init.sh` will create the database, the user, and will insert that file. You can change the connection data for that user here, but remember to also update it in the `./mondrian/config.yaml` file. For more information on what the `01-init.sh` file does, [check its readme file](db/init.d/README.md).
 
 ### mondrian
 This folder needs 2 files: 
 
 - A `config.yaml`, with the required info to connect to the database. You can rename the `config.yaml.example` file an use it if you haven't changed anything in `./db/init.d/01-init.sh`.
 - A `schema.xml`, with the mondrian cube schema to be used. You can use the one available in the [datachile-mondrian](https://github.com/datachile/datachile-mondrian) repository.
+
+On the first run, Mondrian will require to create a few functions and extensions in the database. To do this, the connection used must be for a superuser. The `init.sh` script will take care of the replacement, so take it into account if you change the access credentials for the default postgres superuser. The file `./mondrian/config.su.yaml` has the connection parameters for this.
 
 ### canon
 Make sure the environment variables are correctly set. No other files are needed here.
@@ -71,7 +75,7 @@ This repository contains a `./init.sh` with the steps to run the setup. This set
 If everything is configured correctly, run the following command:
 
 ```bash
-source ./init.sh datachile.io
+$ bash ./init.sh datachile.io
 ```
 
 The first argument, `datachile.io` is the root domain where this instance is running. This will do the procedure needed to get the certificates from the Let's Encrypt Authority.

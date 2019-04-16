@@ -1,5 +1,0 @@
-# This file keeps the folder available in git.
-# The folder stores the Let's Encrypt certs used by nginx.
-# Do not delete this file.
-
-*.pem

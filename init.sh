@@ -9,6 +9,17 @@
 # the instructions in that script file.
 
 # ==============================================================================
+# VARIABLE ASSIGNATION
+DOMAIN=$1
+
+# This array sets which subdomains will get a Let's Encrypt certificate.
+SUBDOMAINS=(www es en chilecube static)
+
+for ix in ${!SUBDOMAINS[*]}; do
+    SUBDOMAINS[$ix]="${SUBDOMAINS[$ix]}.$DOMAIN"
+done
+
+# ==============================================================================
 # MAKE PERMANENT STORAGE FOLDERS
 # If you followed the instructions on README.md, these should be created by now
 # but just in case we will create them again if they not exist.
@@ -30,17 +41,6 @@ for file in ${REQUIRED_FILES[*]}; do
 done
 
 # ==============================================================================
-# VARIABLE ASSIGNATION
-DOMAIN=$1
-
-# This array sets which subdomains will get a Let's Encrypt certificate.
-SUBDOMAINS=(www es en chilecube static)
-
-for ix in ${!SUBDOMAINS[*]}; do
-    SUBDOMAINS[$ix]="${SUBDOMAINS[$ix]}.$DOMAIN"
-done
-
-# ==============================================================================
 # APPLY DOMAIN TO CONFIGURATION
 # replace dummy domain in hosts and docker compose file
 sed -i "s/datachile.localhost/$DOMAIN/g" ./docker-compose.yml
@@ -50,15 +50,26 @@ echo "ssl_certificate      /etc/letsencrypt/live/$DOMAIN/fullchain.pem;" > "./ng
 echo "ssl_certificate_key  /etc/letsencrypt/live/$DOMAIN/privkey.pem;" >> "./nginx/ssl/$DOMAIN"
 
 # ==============================================================================
+# BUILD MONDRIAN-REST-UI INSTANCE
+bash ./rebuild_restui.sh $DOMAIN
+# In case you need to rebuild it again later, you just have to run 
+# `bash ./rebuild_restui.sh domain.tld`
+
+# ==============================================================================
 # INITIALIZE DATABASE
 # This will run the scripts inside ./db/init.d/, and restore the data and user.
-docker-compose run --rm db
+echo "=============================================================="
+echo "WARNING: You must stop the container for this step manually."
+echo "Press CTRL+C to stop it when it's ready to accept connections."
+echo "=============================================================="
+sleep 5
+sudo docker-compose run --rm db
 
 # ==============================================================================
 # CREATE FAKE CERTIFICATES
 # The nginx server won't run without the certificates, so we have to make a few
 # in the meantime.
-docker-compose run --rm --entrypoint sh certbot /fake-certs.sh $DOMAIN
+sudo docker-compose run --rm --entrypoint sh certbot /fake-certs.sh $DOMAIN
 
 # ==============================================================================
 # SWAP MONDRIAN CONFIGURATION TO SUPERUSER MOMENTARILY
@@ -70,12 +81,12 @@ mv ./mondrian/config.su.yaml ./mondrian/config.yaml
 # ==============================================================================
 # CREATE CONTAINERS
 # Let's make the containers this time.
-docker-compose up -d
+sudo docker-compose up -d
 
 # ==============================================================================
 # GENERATE THE ACTUAL CERTIFICATES
 # Time to run certbot.
-docker-compose run --rm --entrypoint sh certbot /real-certs.sh $DOMAIN ${SUBDOMAINS[*]}
+sudo docker-compose run --rm --entrypoint sh certbot /real-certs.sh $DOMAIN ${SUBDOMAINS[*]}
 
 # ==============================================================================
 # RESTORE MONDRIAN CONFIGURATION TO NORMAL USER
@@ -87,4 +98,9 @@ mv ./mondrian/config.user.yaml ./mondrian/config.yaml
 # RESTART EVERYTHING
 # Hoping we got the certificate correctly, restart all the containers.
 # We could just restart the nginx container, but let's play safe.
-docker-compose restart
+sudo docker-compose restart
+
+# ==============================================================================
+# SETUP CERTBOT CRONJOB
+# As mentioned in the readme, the certbot container won't run a cronjob on its
+# own; we have to setup it manually on the host machine.

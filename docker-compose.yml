@@ -21,14 +21,6 @@ services:
     environment:
       - EMAIL=datachile@datawheel.us
 
-  restui:
-    build: https://github.com/Datawheel/mondrian-rest-ui.git#master
-    volumes:
-      - hddrestui:/app/src/build
-    environment:
-      - REACT_APP_API_URL=https://chilecube.datachile.localhost
-    command: yarn run build
-
   db:
     image: "postgres:latest"
     volumes:
@@ -69,8 +61,8 @@ services:
       - NODE_ENV=production
       - APP_HOME=/datachile
       - ROOT=/datachile
-      - CANON_API=https://chilecube.datachile.locahost
-      - CANON_CONST_API=https://chilecube.datachile.locahost
+      - CANON_API=https://chilecube.datachile.localhost
+      - CANON_CONST_API=https://chilecube.datachile.localhost
       - CANON_GOOGLE_ANALYTICS=UA-109603240-1
       - CANON_LANGUAGE_DEFAULT=es
       - CANON_LANGUAGES=es,en

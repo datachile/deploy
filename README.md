@@ -1,11 +1,11 @@
 # datachile deployment procedure
 
-The datachile project has been configured to run on docker containers. Make sure both `docker` and `docker-compose` is installed and running in the machine you intend to setup datachile. You also must previously prepared the DNS configuration for the domain this machine will be located. This is a required step, as the virtual hosts are configured to run for a domain.
-The deployment procedure can be divided in 2 steps: preparation, and setup, however, it's convenient you understand the internal structure in each container before you start the deployment.
+The datachile project has been configured to run on docker containers. Make sure `git`, `docker` and `docker-compose` are installed and running in the machine you intend to setup datachile. You also must have previously prepared the DNS configuration for the domain this machine will be located on. This is a required step, as the virtual hosts are configured to run for a domain.
+The deployment procedure can be divided in 2 steps: preparation, and setup; however, it's convenient you understand the internal structure in each container before you start the deployment.
 Each container runs a different part of the project, and has some common elements that connects them.
 
 ### restui
-The *restui* container builds an instance of [mondrian-rest-ui](https://github.com/Datawheel/mondrian-rest-ui/), which is useful to explore and debug the cubes available. This container will run the build procedure during the setup, and then will exit with code (1). The resulting build will be saved in a docker volume, which is shared with the nginx container.
+As part of the setup procedure, a *restui* image is built, ran, and then deleted. This image is based in the [mondrian-rest-ui](https://github.com/Datawheel/mondrian-rest-ui/) repository, specifically in the Dockerfile present in it. The files resulting from the build are stored in a docker volume, which is then shared with the nginx container.
 
 ### certbot
 The *certbot* container contains an instance of EFF's Certbot, to get the SSL certificates for the domain. This container runs on setup but doesn't do anything; it exits with code (1) immediately. Instead, this container is meant to be run from the outside with `docker-compose run certbot` commands.
@@ -13,7 +13,8 @@ The obtained certificates are saved in a docker volume, and shared with the ngin
 
 ### db
 The *db* container runs a postgres instance, based on the official `postgres:latest` docker image, which will contain the main database.
-According to the instructions for the official [postgres image](https://hub.docker.com/_/postgres/), the first time the container is ran, it checks for the database files in the internal `/var/lib/postgresql` folder (which is mounted as a external volume from `/datastore/postgres`). If the files needed don't exist, it will create them, and then run all the scripts in the internal `/docker-entrypoint-initdb.d` folder (which is mounted from the external `./db/init.d` folder), else it will just run the postgres instance as normally.
+According to the instructions for the official [postgres image](https://hub.docker.com/_/postgres/), the first time the container is ran, it checks for the database files in the internal `/var/lib/postgresql` folder (which is mounted as a external volume from `/datastore/postgres`).
+If the files needed don't exist, it will create them, and then run all the scripts in the internal `/docker-entrypoint-initdb.d` folder (which is mounted from the external `./db/init.d` folder), else it will just run the postgres instance as normally.
 Additionally, the folders `/datastore/dumps` and `/datastore/shared` are mounted in the internal `/app/dumps` and `/app/shared` folders of the container, so you can export and import dumps and other files from other containers and with the host machine.
 
 ### mondrian
@@ -78,6 +79,6 @@ If everything is configured correctly, run the following command:
 $ bash ./init.sh datachile.io
 ```
 
-The first argument, `datachile.io` is the root domain where this instance is running. This will do the procedure needed to get the certificates from the Let's Encrypt Authority.
+Make sure you run this command through `bash`, don't `source` it. The first argument, `datachile.io` is the root domain where this instance is running. This will do the procedure needed to get the certificates from the Let's Encrypt Authority.
 
-As mentioned in the previous section, if the `chilecube` endpoint won't be hosted as a subdomain of the same root domain, you can't run this file directly. Check the `./init.sh` file to understand the procedure it does.
+As mentioned in the previous section, if the `chilecube` endpoint won't be hosted as a subdomain of the same root domain, you can't run this file directly. Check the `./init.sh` file to understand the procedure.

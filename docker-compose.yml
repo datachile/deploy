@@ -78,7 +78,6 @@ services:
     depends_on:
       - canon
       - mondrian
-      - restui
     volumes:
       - hddacme:/tmp/certbot-acme
       - hddcanon:/app/canon-static:ro

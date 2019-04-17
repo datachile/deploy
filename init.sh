@@ -104,3 +104,15 @@ sudo docker-compose restart
 # SETUP CERTBOT CRONJOB
 # As mentioned in the readme, the certbot container won't run a cronjob on its
 # own; we have to setup it manually on the host machine.
+DCL_CRONJOB="0 18 * * 5 root /bin/sh -c 'cd /home/datachile && /usr/local/bin/docker-compose run --rm certbot renew'"
+if [ -d /etc/cron.d -a ]; then
+    if [ ! -f /etc/cron.d/datachile ]; then
+        echo $DCL_CRONJOB | sudo tee /etc/cron.d/datachile
+    else
+        echo "The cronjob was already installed."
+    fi
+else
+    echo "#######################################################"
+    echo "Setup this cronjob to make sure certs are renewed:"
+    echo $DCL_CRONJOB
+fi

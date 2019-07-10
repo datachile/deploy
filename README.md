@@ -22,7 +22,7 @@ The *mondrian* container runs an instance of `mondrian-rest`, built from the [da
 This container also mounts `/datastore/shared` into the internal `/app/shared` folder.
 
 ### canon
-The *canon* container runs the frontend of the datachile project. Canon is the name of the framework datachile is built upon. On the first run, `docker-compose` will build an image called `datachile_canon`, which contains the needed packages to run canon. To run the container, make sure all the needed environment variables are set in the `docker-compose.yml` file.
+The *canon* container runs the frontend of the datachile project. Canon is the name of the framework datachile is built upon. When the image is built on the first run, the needed packages to run canon will be installed. To run the container, make sure all [the needed environment variables](https://github.com/Datawheel/canon#setup-and-installation) are set in the `docker-compose.yml` file.
 The container mounts a docker volume to save the static files, so they can be served directly by nginx, and the `/datastore/shared` folder into the internal `/app/shared` path.
 
 ### nginx
@@ -72,13 +72,19 @@ The included virtual host files suppose `chilecube` (the endpoint where the mond
 
 ## Setup step
 
-This repository contains a `./init.sh` with the steps to run the setup. This setup includes making the subfolders in the `/datastore` folder, initializing the database, building the docker images needed, running the containers and getting the SSL certificates.
+This repository contains a `./init_local.sh` file to setup the environment on a local machine, and a `./init_prod.sh` file for production, both with the steps needed to run the setup. This setup includes steps like making the subfolders in the `/datastore` folder, initializing the database, building the docker images needed, running the containers and getting the SSL certificates. You can comment parts of the scripts if needed.
 If everything is configured correctly, run the following command:
 
 ```bash
-$ bash ./init.sh datachile.io
+# on a local machine
+$ bash ./init_local.sh
+# on a production machine
+$ bash ./init_prod.sh datachile.io
 ```
 
-Make sure you run this command through `bash`, don't `source` it. The first argument, `datachile.io` is the root domain where this instance is running. This will do the procedure needed to get the certificates from the Let's Encrypt Authority.
+Make sure you run the command through `bash`, don't `source` it.
 
-As mentioned in the previous section, if the `chilecube` endpoint won't be hosted as a subdomain of the same root domain, you can't run this file directly. Check the `./init.sh` file to understand the procedure.
+For the local machine, the domain to test is `datachile.localhost`. If your browser can't handle the redirection to localhost, update your hosts file accordingly.
+On the production script, the first argument, `datachile.io` is the root domain where this instance is running. This will do the procedure needed to get the certificates from the Let's Encrypt Authority.
+
+As mentioned in the previous section, if the `chilecube` endpoint won't be hosted as a subdomain of the same root domain, you can't run this file directly. Check the scripts to understand the procedure.

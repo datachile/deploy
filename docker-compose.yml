@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   canon:
-    build: https://github.com/datachile/datachile.git#staging
+    build: https://github.com/datachile/datachile.git
     depends_on:
       - mondrian
     volumes:
